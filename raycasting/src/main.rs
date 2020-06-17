@@ -5,17 +5,84 @@ struct Model {
 }
 
 fn main() {
-    nannou::app(model).update(update).simple_window(view).run()
+    nannou::app(model).update(update).view(view).run();
 }
 
-fn model(_app: &App) -> Model {
-    Model {
-        walls: vec![Boundary {
-            start: Point2 { x: 50., y: 50. },
-            end: Point2 { x: 50., y: -50. },
-        }],
-        rays: RaySource::new(72, Point2 { x: 0., y: 0. }),
+fn model(app: &App) -> Model {
+    // App config
+    app.new_window().resized(window_resized).build().unwrap();
+
+    let mut walls = Vec::new();
+    for _ in 0..random_range(5, 10) {
+        walls.push(Boundary {
+            start: Point2 {
+                x: random_range(-500., 500.),
+                y: random_range(-500., 500.),
+            },
+            end: Point2 {
+                x: random_range(-500., 500.),
+                y: random_range(-500., 500.),
+            },
+        });
     }
+    //the last 4 values are the boundaries of the window
+    for _ in 0..4 {
+        walls.push(Boundary {
+            start: Vector2::zero(),
+            end: Vector2::zero(),
+        });
+    }
+    Model {
+        walls,
+        rays: RaySource::new(360, Point2 { x: 0., y: 0. }),
+    }
+}
+
+fn window_resized(_app: &App, model: &mut Model, dim: Vector2) {
+    for _ in 0..4 {
+        model.walls.pop();
+    }
+
+    model.walls.push(Boundary {
+        start: Point2 {
+            x: -dim.x / 2.,
+            y: -dim.y / 2.,
+        },
+        end: Point2 {
+            x: dim.x / 2.,
+            y: -dim.y / 2.,
+        },
+    });
+    model.walls.push(Boundary {
+        start: Point2 {
+            x: dim.x / 2.,
+            y: -dim.y / 2.,
+        },
+        end: Point2 {
+            x: dim.x / 2.,
+            y: dim.y / 2.,
+        },
+    });
+    model.walls.push(Boundary {
+        start: Point2 {
+            x: dim.x / 2.,
+            y: dim.y / 2.,
+        },
+        end: Point2 {
+            x: -dim.x / 2.,
+            y: dim.y / 2.,
+        },
+    });
+    model.walls.push(Boundary {
+        start: Point2 {
+            x: -dim.x / 2.,
+            y: dim.y / 2.,
+        },
+        end: Point2 {
+            x: -dim.x / 2.,
+            y: -dim.y / 2.,
+        },
+    });
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
@@ -25,15 +92,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 fn view(app: &App, model: &Model, frame: Frame) {
     let canvas = app.draw();
 
-    let win = app.window_rect();
-    let r = Rect::from_w_h(100., 100.).top_left_of(win);
-
     canvas.background().color(BLACK);
-    canvas.rect().xy(r.xy()).wh(r.wh()).color(WHITE);
 
-    model.rays.show(50., &canvas);
+    // model.rays.show(50., &canvas);
     // dibujamos los rayos
-    model.rays.cast_all(&model.walls, &canvas);
+    model.rays.cast_all(&model.walls, rgba(1., 1., 1., 0.2), &canvas);
     // dibujamos las paredes
     for wall in &model.walls {
         wall.show(&canvas);
@@ -54,7 +117,7 @@ impl Boundary {
             .start(self.start)
             .end(self.end)
             .weight(1.)
-            .color(WHITE);
+            .color(rgba(1., 1., 1., 0.2));
     }
 }
 
@@ -108,13 +171,25 @@ impl RaySource {
         }
     }
 
-    fn cast_all(&self, walls: &[Boundary], canvas: &Draw) {
+    fn cast_all(&self, walls: &[Boundary], color: Rgba, canvas: &Draw) {
         for ray in &self.rays {
+            let mut closest = Vector2::max_value();
+            let mut min = std::f32::INFINITY;
             for wall in walls {
                 if let Some(p) = RaySource::cast_ray(ray, &self.pos, wall) {
-                    canvas.line().start(self.pos).end(p).weight(1.).color(WHITE);
+                    let d = self.pos.distance(p);
+                    if d < min {
+                        closest = p;
+                        min = d;
+                    }
                 }
             }
+            canvas
+                .line()
+                .start(self.pos)
+                .end(closest)
+                .weight(1.)
+                .color(color);
         }
     }
 }
