@@ -34,7 +34,7 @@ fn model(app: &App) -> Model {
     }
     Model {
         walls,
-        rays: RaySource::new(360, Point2 { x: 0., y: 0. }),
+        rays: RaySource::new(60),
     }
 }
 
@@ -126,32 +126,21 @@ impl Boundary {
 }
 
 struct RaySource {
+    fov: i32,
     pos: Point2,
-    rays: Vec<Vector2>,
+    dir: Vector2,
 }
 
 impl RaySource {
-    fn new(count: i32, pos: Point2) -> Self {
-        let mut rays = Vec::new();
-        for i in (0..360).step_by(360 / count as usize) {
-            let i = i as f32;
-            rays.push(Vector2::from_angle(i.to_radians()));
-        }
-        RaySource { pos, rays }
-    }
-
-    fn show(&self, length: f32, canvas: &Draw) {
-        for ray in &self.rays {
-            canvas
-                .arrow()
-                .start(self.pos)
-                .end(self.pos + *ray * length)
-                .weight(1.0)
-                .color(STEELBLUE);
+    fn new(fov: i32) -> Self {
+        RaySource {
+            fov,
+            pos: Vector2::zero(),
+            dir: Vector2::zero(),
         }
     }
 
-    fn cast_ray(dir: &Vector2, pos: &Vector2, wall: &Boundary) -> Option<Point2> {
+    fn cast_ray(pos: &Vector2, dir: &Vector2, wall: &Boundary) -> Option<Point2> {
         let (x1, y1) = wall.start.into();
         let (x2, y2) = wall.end.into();
         let (x3, y3) = (*pos).into();
@@ -176,15 +165,19 @@ impl RaySource {
     }
 
     fn cast_all(&self, walls: &[Boundary], color: Rgba, canvas: &Draw) {
-        for ray in &self.rays {
+        for offset in (-self.fov / 2)..(self.fov / 2) {
+            let dir = {
+                let angle = offset as f32;
+                self.dir.rotate(angle.to_radians())
+            };
             let mut closest = Vector2::max_value();
             let mut min = std::f32::INFINITY;
             for wall in walls {
-                if let Some(p) = RaySource::cast_ray(ray, &self.pos, wall) {
-                    let d = self.pos.distance(p);
-                    if d < min {
-                        closest = p;
-                        min = d;
+                if let Some(point) = RaySource::cast_ray(&self.pos, &dir, wall) {
+                    let dist = self.pos.distance(point);
+                    if dist < min {
+                        closest = point;
+                        min = dist;
                     }
                 }
             }
