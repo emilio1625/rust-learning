@@ -2,6 +2,7 @@ use nannou::prelude::*;
 struct Model {
     walls: Vec<Boundary>,
     rays: RaySource,
+    vel: Vector2<f32>,
 }
 
 fn main() {
@@ -35,6 +36,7 @@ fn model(app: &App) -> Model {
     Model {
         walls,
         rays: RaySource::new(60),
+        vel: Vector2::zero(),
     }
 }
 
@@ -89,8 +91,45 @@ fn window_resized(_app: &App, model: &mut Model, dim: Vector2) {
     });
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
-    model.rays.pos = app.mouse.position();
+fn update(app: &App, model: &mut Model, update: Update) {
+    model.rays.dir = (app.mouse.position() - model.rays.pos).normalize();
+
+    // move management
+    let mut input = Vector2::zero();
+    for key in app.keys.down.iter() {
+        match key {
+            Key::W | Key::Up => input.y += 1.,
+            Key::S | Key::Down => input.y -= 1.,
+            Key::D | Key::Right => input.x += 1.,
+            Key::A | Key::Left => input.x -= 1.,
+            _ => (),
+        }
+    }
+
+    input = input.normalize();
+
+    if input.is_zero()
+        && (-0.01 < model.vel.x
+            && model.vel.x < 0.01
+            && -0.01 < model.vel.y
+            && model.vel.y < 0.01)
+    {
+        return;
+    }
+
+    const FRICTION: f32 = 0.05;
+    const ACCEL: f32 = 0.001;
+    let dt = update.since_last.as_millis() as f32;
+    let mut vel = model.vel + input * (ACCEL * dt);
+    vel = vel.lerp(Vector2::zero(), FRICTION);
+    println!("vel = {:?}", vel);
+
+    model.rays.pos += vel * dt;
+    model.vel = vel;
+
+    let win = app.window_rect();
+    model.rays.pos.x = clamp(model.rays.pos.x, win.left(), 0.0);
+    model.rays.pos.y = clamp(model.rays.pos.y, win.bottom(), win.top());
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
@@ -100,7 +139,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // model.rays.show(50., &canvas);
     // dibujamos los rayos
-    model.rays.cast_all(&model.walls, rgba(1., 1., 1., 1.0), &canvas);
+    model
+        .rays
+        .cast_all(&model.walls, rgba(1., 1., 1., 1.0), &canvas);
     // dibujamos las paredes
     for wall in &model.walls {
         wall.show(&canvas);
