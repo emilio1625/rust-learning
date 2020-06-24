@@ -18,11 +18,11 @@ fn model(app: &App) -> Model {
         walls.push(Boundary {
             start: Point2 {
                 x: random_range(-500., 0.),
-                y: random_range(-500., 0.),
+                y: random_range(-500., 500.),
             },
             end: Point2 {
                 x: random_range(-500., 0.),
-                y: random_range(-500., 0.),
+                y: random_range(-500., 500.),
             },
         });
     }
@@ -94,7 +94,6 @@ fn window_resized(_app: &App, model: &mut Model, dim: Vector2) {
 fn update(app: &App, model: &mut Model, update: Update) {
     model.rays.dir = (app.mouse.position() - model.rays.pos).normalize();
 
-    // move management
     let mut input = Vector2::zero();
     for key in app.keys.down.iter() {
         match key {
@@ -109,10 +108,10 @@ fn update(app: &App, model: &mut Model, update: Update) {
     input = input.normalize();
 
     if input.is_zero()
-        && (-0.01 < model.vel.x
-            && model.vel.x < 0.01
-            && -0.01 < model.vel.y
-            && model.vel.y < 0.01)
+        && (-0.001 < model.vel.x
+            && model.vel.x < 0.001
+            && -0.001 < model.vel.y
+            && model.vel.y < 0.001)
     {
         return;
     }
