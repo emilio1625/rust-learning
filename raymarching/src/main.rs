@@ -13,15 +13,15 @@ fn model(app: &App) -> Model {
     app.new_window().resized(window_resized).build().unwrap();
 
     let mut walls = Vec::new();
-    for _ in 0..random_range(5, 10) {
+    for _ in 0..random_range(3, 7) {
         walls.push(Boundary {
             start: Point2 {
-                x: random_range(-500., 500.),
-                y: random_range(-500., 500.),
+                x: random_range(-500., 0.),
+                y: random_range(-500., 0.),
             },
             end: Point2 {
-                x: random_range(-500., 500.),
-                y: random_range(-500., 500.),
+                x: random_range(-500., 0.),
+                y: random_range(-500., 0.),
             },
         });
     }
@@ -49,23 +49,27 @@ fn window_resized(_app: &App, model: &mut Model, dim: Vector2) {
             y: -dim.y / 2.,
         },
         end: Point2 {
-            x: dim.x / 2.,
+            // x: dim.x / 2.,
+            x: 0.,
             y: -dim.y / 2.,
         },
     });
     model.walls.push(Boundary {
         start: Point2 {
-            x: dim.x / 2.,
+            // x: dim.x / 2.,
+            x: 0.,
             y: -dim.y / 2.,
         },
         end: Point2 {
-            x: dim.x / 2.,
+            // x: dim.x / 2.,
+            x: 0.,
             y: dim.y / 2.,
         },
     });
     model.walls.push(Boundary {
         start: Point2 {
-            x: dim.x / 2.,
+            // x: dim.x / 2.,
+            x: 0.,
             y: dim.y / 2.,
         },
         end: Point2 {
@@ -96,7 +100,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // model.rays.show(50., &canvas);
     // dibujamos los rayos
-    model.rays.cast_all(&model.walls, rgba(1., 1., 1., 0.2), &canvas);
+    model.rays.cast_all(&model.walls, rgba(1., 1., 1., 1.0), &canvas);
     // dibujamos las paredes
     for wall in &model.walls {
         wall.show(&canvas);
