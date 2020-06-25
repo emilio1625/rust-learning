@@ -121,7 +121,6 @@ fn update(app: &App, model: &mut Model, update: Update) {
     let dt = update.since_last.as_millis() as f32;
     let mut vel = model.vel + input * (ACCEL * dt);
     vel = vel.lerp(Vector2::zero(), FRICTION);
-    println!("vel = {:?}", vel);
 
     model.rays.pos += vel * dt;
     model.vel = vel;
@@ -140,7 +139,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // dibujamos los rayos
     model
         .rays
-        .cast_all(&model.walls, rgba(1., 1., 1., 1.0), &canvas);
+        .cast_all(&model.walls, rgba(1., 1., 1., 1.0), &canvas, app.window_rect());
     // dibujamos las paredes
     for wall in &model.walls {
         wall.show(&canvas);
@@ -204,7 +203,8 @@ impl RaySource {
         }
     }
 
-    fn cast_all(&self, walls: &[Boundary], color: Rgba, canvas: &Draw) {
+    fn cast_all(&self, walls: &[Boundary], color: Rgba, canvas: &Draw, win: Rect) {
+        let mut i = 0;
         for offset in (-self.fov / 2)..(self.fov / 2) {
             let dir = {
                 let angle = offset as f32;
@@ -227,6 +227,21 @@ impl RaySource {
                 .end(closest)
                 .weight(1.)
                 .color(color);
+
+            // render
+            let dist = clamp(min, 0., win.h());
+            let fovf = self.fov as f32;
+            let slice_w = win.w() / (2. * fovf);
+            // only using half screen-^
+            let brightness = map_range(dist, 0., win.h(), 1., 0.);
+            let slice_h = map_range(dist, 0., win.h(), win.h(), 0.);
+            canvas
+                .rect()
+                .width(slice_w)
+                .x(win.w()/2. - slice_w/2. - slice_w * i as f32)
+                .height(slice_h)
+                .color(rgba(brightness, brightness, brightness, 1.));
+            i += 1;
         }
     }
 }
