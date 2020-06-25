@@ -206,10 +206,8 @@ impl RaySource {
     fn cast_all(&self, walls: &[Boundary], color: Rgba, canvas: &Draw, win: Rect) {
         let mut i = 0;
         for offset in (-self.fov / 2)..(self.fov / 2) {
-            let dir = {
-                let angle = offset as f32;
-                self.dir.rotate(angle.to_radians())
-            };
+            let angle = (offset as f32).to_radians();
+            let dir = self.dir.rotate(angle);
             let mut closest = Vector2::max_value();
             let mut min = std::f32::INFINITY;
             for wall in walls {
@@ -229,12 +227,15 @@ impl RaySource {
                 .color(color);
 
             // render
-            let dist = clamp(min, 0., win.h());
             let fovf = self.fov as f32;
             let slice_w = win.w() / (2. * fovf);
             // only using half screen-^
-            let brightness = map_range(dist, 0., win.h(), 1., 0.);
-            let slice_h = map_range(dist, 0., win.h(), win.h(), 0.);
+            let mut dist = clamp(min, 0., win.h());
+            dist = dist * angle.cos();
+            let brightness = map_range(dist*dist, 0., win.h()*win.h(), 0.95, 0.05);
+            const MIN_HEIGHT: f32 = 50.;
+            let slice_h = MIN_HEIGHT * win.h()/dist;
+
             canvas
                 .rect()
                 .width(slice_w)
