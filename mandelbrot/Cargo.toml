@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 nannou = "0.14.1"
+num-complex = "0.3"
